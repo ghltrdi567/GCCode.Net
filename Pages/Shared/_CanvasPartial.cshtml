@@ -1,0 +1,779 @@
+﻿
+@model (List<List<WorkClasses.Parser.Point>> points, WorkClasses.Parser.Point max_point)
+@{
+    
+
+
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8>
+
+    <title>First Three.js app</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            
+            
+        }
+    </style>
+</head>
+<body>
+    <script src="~/lib/threejs/three.js"></script>
+    <script src="~/lib/threejs/OrbitControls.js"></script>
+    <script src="~/lib/threejs/FlyControls.js"></script>
+    <script src="~/lib/threejs/CameraHelper.js"></script>
+    <script src="~/lib/threejs/BufferGeometryUtils.js"></script>
+    <script src="~/lib/threejs/CatmullRomCurve3.js"></script>
+    @* <script src="~/lib/dat.gui/dat.gui.module.js"></script> *@
+    @* <script src="~/lib/threejs/CurveModifier.js"></script> *@
+    @* <script src="~/lib/threejs/Flow.js"></script> *@
+
+   
+
+    <script src="~/lib/threejs/stats.min.js"></script>
+
+
+
+    <script type="module">
+
+        import { GUI } from '/lib/dat.gui/dat.gui.module.js'
+        
+        var Data_m = [];
+
+        var Max_side =  parseFloat(@Math.Max(Math.Max(Model.max_point.X, Model.max_point.Y ), Model.max_point.Z).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+
+       
+        
+        let camera, renderer, scene, controls;
+
+        var Layers = [];
+
+        var Current_Layer = [];
+
+        var Cur_three_point = new THREE.Vector3();
+
+        @for (int i = 0; i < Model.points.Count; i++)
+        {
+
+            for (int k = 0; k < Model.points[i].Count; k++)
+            {
+                @:Cur_three_point.x = parseFloat(@Model.points[i][k].X.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))
+                @:Cur_three_point.y = parseFloat(@Model.points[i][k].Z.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))
+                @:Cur_three_point.z = parseFloat(@Model.points[i][k].Y.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))
+
+        // @:Current_Layer.push(parseFloat(@Model.points[i][k].X.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+            // @:Current_Layer.push(parseFloat(@Model.points[i][k].Y.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+            // @:Current_Layer.push(parseFloat(@Model.points[i][k].Z.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+
+            @:Current_Layer.push(Cur_three_point);
+                @:Cur_three_point = new THREE.Vector3();
+
+
+        }
+
+            @:Layers.push(Current_Layer);
+        @:Current_Layer=[];
+
+        }
+
+            document.getElementById('loading_spinner').hidden = true;
+        
+        init();
+        
+        
+        
+           
+        function init() {
+
+
+
+
+
+
+            var frac = 0;
+            var i_poi = 0;
+            var layer_i = 0;
+            var arrow_speed = {
+
+                "Скорость_отрисовки": 0.1
+            };
+
+            var is_drawing = true;
+            
+
+            //Установление размеров канваса
+            var WIDTH = window.innerWidth * 0.7;
+            var HEIGHT = window.innerHeight * 0.7;
+
+
+           
+             renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(WIDTH, HEIGHT);
+            renderer.setClearColor(0xDDDDDD, 1);
+            //Постановка рендера внутри элемента с id=canvas_patrial
+            document.getElementById('canvas_patrial').appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+
+
+            //Камера
+             camera = new THREE.PerspectiveCamera(70, WIDTH / HEIGHT, 0.1, 10000);
+            camera.position.z = Max_side * 1;
+            camera.position.y = Max_side * 1;
+            camera.position.x = Max_side * 1;
+
+            scene.add(camera);
+            //добавление обработчика изменения размера страницы
+            window.addEventListener('resize', onWindowResize);
+
+            //Вращение камеры
+             controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+             //вращение камеры клавишами WSAD
+            document.addEventListener("keydown", event => {
+                //W
+                if (event.isComposing || event.keyCode === 87) {
+                    camera.position.y = camera.position.y + 1;
+                    return;
+                }
+
+                //S
+                if (event.isComposing || event.keyCode === 83) {
+                    camera.position.y = camera.position.y - 1;
+                    return;
+                }
+
+                //D
+                if (event.isComposing || event.keyCode === 68) {
+                    camera.position.x = camera.position.x + 1;
+                    return;
+                }
+
+                //A
+                if (event.isComposing || event.keyCode === 65) {
+                    camera.position.x = camera.position.x - 1;
+                    return;
+                }
+
+
+            });
+
+
+            const dotline_mat_layer = new THREE.LineBasicMaterial({ color: 0xff0000 });
+
+
+            //Оси координат
+            const material1 = new THREE.LineBasicMaterial({ color: 0xff0000 });
+            const points1 = [];
+            points1.push(new THREE.Vector3(0, 0, 0));
+            points1.push(new THREE.Vector3(100, 0, 0));
+            const geometry1 = new THREE.BufferGeometry().setFromPoints(points1);
+            const line1 = new THREE.Line(geometry1, material1);
+            scene.add(line1);
+
+
+
+            const material2 = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+            const points2 = [];
+            points2.push(new THREE.Vector3(0, 0, 0));
+            points2.push(new THREE.Vector3(0, 100, 0));
+            const geometry2 = new THREE.BufferGeometry().setFromPoints(points2);
+            const line2 = new THREE.Line(geometry2, material2);
+            scene.add(line2);
+
+
+            const material3 = new THREE.LineBasicMaterial({ color: 0x0000ff });
+            const points3 = [];
+            points3.push(new THREE.Vector3(0, 0, 0));
+            points3.push(new THREE.Vector3(0, 0, 100));
+            const geometry3 = new THREE.BufferGeometry().setFromPoints(points3);
+            const line3 = new THREE.Line(geometry3, material3);
+            scene.add(line3);
+
+            
+
+
+
+
+
+
+            //Создание линии по точкам
+            // var dotline_mat = new THREE.LineBasicMaterial({ color: 0x0000ff });
+            // var dotline_poi = [];
+
+
+            // var h = 0;
+            // for (var i = 0; i < Data_m.length / 3; i++) {
+
+
+            //     dotline_poi.push(new THREE.Vector3(Data_m[(i * 3)], Data_m[(i * 3) + 2], Data_m[(i * 3) + 1]));
+
+            //     h++;
+            // }
+            // //alert(h);
+            
+
+            // const dotline_geo = new THREE.BufferGeometry().setFromPoints(dotline_poi);
+            // const dotline = new THREE.Line(dotline_geo, dotline_mat);
+            //scene.add(dotline);
+
+
+
+            var arrow_point =  new THREE.Vector3(0, 0, 0);
+            var arr_geometries = [];
+
+            var arrow_height = 20;
+            var arrow_m_wigdt = 5;
+
+
+
+            //Пробую сделать стрелку
+
+            var neckGeom  = new THREE.CylinderGeometry( arrow_m_wigdt/2, arrow_m_wigdt/2, arrow_height/2, 10 ); 
+            const arrow_mat = new THREE.MeshBasicMaterial( {color: 0xffff00} ); 
+            const neck = new THREE.Mesh( neckGeom, arrow_mat );
+            neckGeom.translate(0, arrow_height * 0.75 ,0);
+            arr_geometries.push(neckGeom);
+            
+
+
+            var arrGeom  = new THREE.CylinderGeometry( arrow_m_wigdt, 0, arrow_height/2, 10 ); 
+            const arrow = new THREE.Mesh( arrGeom, arrow_mat );
+            arrGeom.translate(0, arrow_height/4 ,0);
+
+            arr_geometries.push(arrGeom);
+
+            
+            var geometry = THREE.BufferGeometryUtils.mergeBufferGeometries(arr_geometries);
+            
+            var arr_mesh = new THREE.Mesh(geometry, arrow_mat);
+            scene.add( arr_mesh );
+
+            //Меню
+
+            var gui = new GUI({ autoPlace: false });
+            
+
+            var customContainer = document.getElementById('gui-container');
+            customContainer.appendChild(gui.domElement);
+
+            const folder = gui.addFolder('Настройки');
+
+            
+            folder.add(arrow_speed, "Скорость_отрисовки", 0, 10, 1);
+            folder.open()
+
+
+            
+            
+            //Путь по точкам
+            const somePoints = [
+
+                new THREE.Vector3(10, 0, -10),
+                new THREE.Vector3(10, 6, 10),
+                new THREE.Vector3(-10, 0, 10),
+                new THREE.Vector3(-10, 2, -10),
+
+            ];
+
+            var light = new THREE.PointLight(0xFFFFFF);
+            light.position.set(10, 15, 50);
+            scene.add(light);
+
+            render();
+
+            // const curve = new THREE.CatmullRomCurve3(dotline_poi);
+            // curve.closed = true;
+            // curve.tension = 0;
+
+            // const points = curve.getPoints(dotline_poi.length);
+            // const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0xffffaa }));
+            //scene.add(line);
+
+            
+            //Перемещение стрелки по единичному кругу
+            function MoveArrow(fraction, speed) {
+
+                //0<fraction<1
+                debugger;
+                if (fraction > 1) {
+                    fraction = 0;
+                }
+
+                var R = 1;
+                
+
+                arr_mesh.position.x = R * Math.sin(fraction * 2 * Math.PI);
+                arr_mesh.position.y = R * Math.cos(fraction * 2 * Math.PI);
+
+
+                
+                
+            }
+
+
+            
+            function MoveAlongPoints(points, i_point, fraction, speed) {
+
+                //0<fraction<1
+                
+                if (points.length == 1) return fraction;
+
+                var x_space = points[i_point + 1].x - points[i_point].x;
+                var y_space = points[i_point + 1].y - points[i_point].y;
+                var z_space = points[i_point + 1].z - points[i_point].z;
+
+
+                var lenght_between = Math.sqrt(x_space * x_space + y_space * y_space + z_space * z_space);
+
+                arr_mesh.position.set(points[i_point].x + x_space * fraction, points[i_point].y + y_space * fraction, points[i_point].z + z_space * fraction);
+
+                //console.log(fraction + speed / lenght_between);
+                return fraction + speed / lenght_between;
+            }
+
+            
+            //Отрисовка слоя
+           function DrawLayer(i_layer){
+
+
+                var dotline_geo_layer = new THREE.BufferGeometry().setFromPoints(Layers[i_layer]);
+                var dotline_layer = new THREE.Line(dotline_geo_layer, dotline_mat_layer);
+                scene.add(dotline_layer);
+
+
+
+
+           }
+           
+           
+            function render() {
+
+                
+                requestAnimationFrame(render);
+
+                if (is_drawing) {
+
+                    frac = MoveAlongPoints(Layers[layer_i], i_poi, frac, arrow_speed['Скорость_отрисовки']);
+
+                    if (frac > 1) {
+                        frac = 0;
+                        i_poi++
+                    }
+                    if (i_poi > Layers[layer_i].length - 2) {
+                        i_poi = 0;
+                        DrawLayer(layer_i);
+                        layer_i++;
+                    }
+                    if (layer_i > Layers.length - 1) is_drawing = false;
+
+
+                }
+                //Перемещение по массиву точек
+                
+
+
+                //Перемещение стрелки по единичному кругу
+                // MoveArrow(frac, 0.01);
+                // frac += 0.01;
+                // if (frac > 1) {
+                //     frac = 0;
+                // }
+
+
+
+                // required if controls.enableDamping or controls.autoRotate are set to true
+                controls.update();
+
+
+                
+                renderer.render(scene, camera);
+
+
+
+            }
+
+
+        }
+
+        
+        
+        
+
+        
+        
+
+        function onWindowResize() {
+
+            //var WIDTH = document.getElementById('show_canvas').style.width;
+            var WIDTH = window.innerWidth * 0.7;
+            var HEIGHT = window.innerHeight * 0.7;
+
+
+            camera.aspect = WIDTH / HEIGHT;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(WIDTH, HEIGHT);
+
+        }
+
+       
+
+       
+
+
+
+    </script>
+
+
+
+    <script>
+
+        //служебный класс
+        // Original src: https://github.com/zz85/threejs-path-flow
+        const BITS = 3;
+        const TEXTURE_WIDTH = 1024;
+        const TEXTURE_HEIGHT = 4;
+
+        //import {
+        //	DataTexture,
+        //	RGBFormat,
+        //	FloatType,
+        //	RepeatWrapping,
+        //	Mesh,
+        //	InstancedMesh,
+        //	NearestFilter,
+        //	DynamicDrawUsage,
+        //	Matrix4
+        //} from '../jsm/three.module.128.js';
+
+        /**
+         * Make a new DataTexture to store the descriptions of the curves.
+         *
+         * param { number } numberOfCurves the number of curves needed to be described by this texture.
+         */
+        function initSplineTexture(numberOfCurves = 1) {
+
+            const dataArray = new Float32Array(TEXTURE_WIDTH * TEXTURE_HEIGHT * numberOfCurves * BITS);
+            const dataTexture = new THREE.DataTexture(
+                dataArray,
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT * numberOfCurves,
+                THREE.RGBFormat,
+                THREE.FloatType
+            );
+
+            dataTexture.wrapS = THREE.RepeatWrapping;
+            dataTexture.wrapY = THREE.RepeatWrapping;
+            dataTexture.magFilter = THREE.NearestFilter;
+            dataTexture.needsUpdate = true;
+
+            return dataTexture;
+
+        }
+
+        /**
+         * Write the curve description to the data texture
+         *
+         * param { THREE.DataTexture } texture The DataTexture to write to
+         * param { Curve } splineCurve The curve to describe
+         * param { number } offset Which curve slot to write to
+         */
+        function updateSplineTexture(texture, splineCurve, offset = 0) {
+
+            const numberOfPoints = Math.floor(TEXTURE_WIDTH * (TEXTURE_HEIGHT / 4));
+            splineCurve.arcLengthDivisions = numberOfPoints / 2;
+            splineCurve.updateArcLengths();
+            const points = splineCurve.getSpacedPoints(numberOfPoints);
+            const frenetFrames = splineCurve.computeFrenetFrames(numberOfPoints, true);
+
+            for (let i = 0; i < numberOfPoints; i++) {
+
+                const rowOffset = Math.floor(i / TEXTURE_WIDTH);
+                const rowIndex = i % TEXTURE_WIDTH;
+
+                let pt = points[i];
+                setTextureValue(texture, rowIndex, pt.x, pt.y, pt.z, 0 + rowOffset + (TEXTURE_HEIGHT * offset));
+                pt = frenetFrames.tangents[i];
+                setTextureValue(texture, rowIndex, pt.x, pt.y, pt.z, 1 + rowOffset + (TEXTURE_HEIGHT * offset));
+                pt = frenetFrames.normals[i];
+                setTextureValue(texture, rowIndex, pt.x, pt.y, pt.z, 2 + rowOffset + (TEXTURE_HEIGHT * offset));
+                pt = frenetFrames.binormals[i];
+                setTextureValue(texture, rowIndex, pt.x, pt.y, pt.z, 3 + rowOffset + (TEXTURE_HEIGHT * offset));
+
+            }
+
+            texture.needsUpdate = true;
+
+        }
+
+
+        function setTextureValue(texture, index, x, y, z, o) {
+
+            const image = texture.image;
+            const { data } = image;
+            const i = BITS * TEXTURE_WIDTH * o; // Row Offset
+            data[index * BITS + i + 0] = x;
+            data[index * BITS + i + 1] = y;
+            data[index * BITS + i + 2] = z;
+
+        }
+
+        /**
+         * Create a new set of uniforms for describing the curve modifier
+         *
+         * param { THREE.DataTexture } Texture which holds the curve description
+         */
+        function getUniforms(splineTexture) {
+
+            const uniforms = {
+                spineTexture: { value: splineTexture },
+                pathOffset: { type: 'f', value: 0 }, // time of path curve
+                pathSegment: { type: 'f', value: 1 }, // fractional length of path
+                spineOffset: { type: 'f', value: 161 },
+                spineLength: { type: 'f', value: 400 },
+                flow: { type: 'i', value: 1 },
+            };
+            return uniforms;
+
+        }
+
+        function modifyShader(material, uniforms, numberOfCurves = 1) {
+
+            if (material.__ok) return;
+            material.__ok = true;
+
+            material.onBeforeCompile = (shader) => {
+
+                if (shader.__modified) return;
+                shader.__modified = true;
+
+                Object.assign(shader.uniforms, uniforms);
+
+                const vertexShader = `
+                uniform sampler2D spineTexture;
+                uniform float pathOffset;
+                uniform float pathSegment;
+                uniform float spineOffset;
+                uniform float spineLength;
+                uniform int flow;
+
+                float textureLayers = ${TEXTURE_HEIGHT * numberOfCurves}.;
+                float textureStacks = ${TEXTURE_HEIGHT / 4}.;
+
+                ${shader.vertexShader}
+                `
+                    // chunk import moved in front of modified shader below
+                    .replace('#include <beginnormal_vertex>', '')
+
+                    // vec3 transformedNormal declaration overriden below
+                    .replace('#include <defaultnormal_vertex>', '')
+
+                    // vec3 transformed declaration overriden below
+                    .replace('#include <begin_vertex>', '')
+
+                    // shader override
+                    .replace(
+                        /void\s*main\s*\(\)\s*\{/,
+                        `
+        void main() {
+        #include <beginnormal_vertex>
+
+        vec4 worldPos = modelMatrix * vec4(position, 1.);
+
+        bool bend = flow > 0;
+        float xWeight = bend ? 0. : 1.;
+
+        #ifdef USE_INSTANCING
+        float pathOffsetFromInstanceMatrix = instanceMatrix[3][2];
+        float spineLengthFromInstanceMatrix = instanceMatrix[3][0];
+        float spinePortion = bend ? (worldPos.x + spineOffset) / spineLengthFromInstanceMatrix : 0.;
+        float mt = (spinePortion * pathSegment + pathOffset + pathOffsetFromInstanceMatrix)*textureStacks;
+        #else
+        float spinePortion = bend ? (worldPos.x + spineOffset) / spineLength : 0.;
+        float mt = (spinePortion * pathSegment + pathOffset)*textureStacks;
+        #endif
+
+        mt = mod(mt, textureStacks);
+        float rowOffset = floor(mt);
+
+        #ifdef USE_INSTANCING
+        rowOffset += instanceMatrix[3][1] * ${TEXTURE_HEIGHT}.;
+        #endif
+
+        vec3 spinePos = texture2D(spineTexture, vec2(mt, (0. + rowOffset + 0.5) / textureLayers)).xyz;
+        vec3 a =        texture2D(spineTexture, vec2(mt, (1. + rowOffset + 0.5) / textureLayers)).xyz;
+        vec3 b =        texture2D(spineTexture, vec2(mt, (2. + rowOffset + 0.5) / textureLayers)).xyz;
+        vec3 c =        texture2D(spineTexture, vec2(mt, (3. + rowOffset + 0.5) / textureLayers)).xyz;
+        mat3 basis = mat3(a, b, c);
+
+        vec3 transformed = basis
+            * vec3(worldPos.x * xWeight, worldPos.y * 1., worldPos.z * 1.)
+            + spinePos;
+
+        vec3 transformedNormal = normalMatrix * (basis * objectNormal);
+                    ` ).replace(
+                            '#include <project_vertex>',
+                            `vec4 mvPosition = modelViewMatrix * vec4( transformed, 1.0 );
+                        gl_Position = projectionMatrix * mvPosition;`
+                        );
+
+                shader.vertexShader = vertexShader;
+
+            };
+
+        }
+
+        /**
+         * A helper class for making meshes bend aroudn curves
+         */
+        class Flow {
+
+            /**
+             * param {THREE.Mesh} mesh The mesh to clone and modify to bend around the curve
+             * param {number} numberOfCurves The amount of space that should preallocated for additional curves
+             */
+            constructor(mesh, numberOfCurves = 1) {
+
+                const obj3D = mesh.clone();
+                const splineTexure = initSplineTexture(numberOfCurves);
+                const uniforms = getUniforms(splineTexure);
+                obj3D.traverse(function (child) {
+
+                    if (
+                        child instanceof THREE.Mesh ||
+                        child instanceof THREE.InstancedMesh
+                    ) {
+
+                        child.material = child.material.clone();
+                        modifyShader(child.material, uniforms, numberOfCurves);
+
+                    }
+
+                });
+
+                this.curveArray = new Array(numberOfCurves);
+                this.curveLengthArray = new Array(numberOfCurves);
+
+                this.object3D = obj3D;
+                this.splineTexure = splineTexure;
+                this.uniforms = uniforms;
+
+            }
+
+            updateCurve(index, curve) {
+
+                if (index >= this.curveArray.length) throw Error('Index out of range for Flow');
+                const curveLength = curve.getLength();
+                this.uniforms.spineLength.value = curveLength;
+                this.curveLengthArray[index] = curveLength;
+                this.curveArray[index] = curve;
+                updateSplineTexture(this.splineTexure, curve, index);
+
+            }
+
+            moveAlongCurve(amount) {
+
+                this.uniforms.pathOffset.value += amount;
+
+            }
+
+        }
+        const matrix = new THREE.Matrix4();
+
+        /**
+         * A helper class for creating instanced versions of flow, where the instances are placed on the curve.
+         */
+        class InstancedFlow extends Flow {
+
+            /**
+             *
+             * param {number} count The number of instanced elements
+             * param {number} curveCount The number of curves to preallocate for
+             * param {Geometry} geometry The geometry to use for the instanced mesh
+             * param {Material} material The material to use for the instanced mesh
+             */
+            constructor(count, curveCount, geometry, material) {
+
+                const mesh = new THREE.InstancedMesh(
+                    geometry,
+                    material,
+                    count
+                );
+                mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                super(mesh, curveCount);
+
+                this.offsets = new Array(count).fill(0);
+                this.whichCurve = new Array(count).fill(0);
+
+            }
+
+            /**
+             * The extra information about which curve and curve position is stored in the translation components of the matrix for the instanced objects
+             * This writes that information to the matrix and marks it as needing update.
+             *
+             * param {number} index of the instanced element to update
+             */
+            writeChanges(index) {
+
+                matrix.makeTranslation(
+                    this.curveLengthArray[this.whichCurve[index]],
+                    this.whichCurve[index],
+                    this.offsets[index]
+                );
+                this.object3D.setMatrixAt(index, matrix);
+                this.object3D.instanceMatrix.needsUpdate = true;
+
+            }
+
+            /**
+             * Move an individual element along the curve by a specific amount
+             *
+             * param {number} index Which element to update
+             * param {number} offset Move by how much
+             */
+            moveIndividualAlongCurve(index, offset) {
+
+                this.offsets[index] += offset;
+                this.writeChanges(index);
+
+            }
+
+            /**
+             * Select which curve to use for an element
+             *
+             * param {number} index the index of the instanced element to update
+             * param {number} curveNo the index of the curve it should use
+             */
+            setCurve(index, curveNo) {
+
+                if (isNaN(curveNo)) throw Error('curve index being set is Not a Number (NaN)');
+                this.whichCurve[index] = curveNo;
+                this.writeChanges(index);
+
+            }
+
+        }
+
+
+
+
+
+    </script>
+
+
+
+
+
+
+</body>
+</html>

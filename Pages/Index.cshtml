@@ -1,0 +1,94 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<style>
+   
+    .canvas_patrial{
+        overflow: scroll
+
+    }
+
+    #gui-container {
+        position: relative;
+        top: 0px;
+        left: 20px;
+        z-index: 10;
+    }
+
+</style>
+
+
+
+
+<div class="row justify-content-center">
+
+    
+   <form method="post" enctype="multipart/form-data" id="file_form">
+        <p>Имя файла: <strong id="filename">@Model.FIleName</strong></p>
+        <div class="input-group mb-3">
+            <input type="file" class="form-control" required name="inputFile" accept=".gcode" onchange="ChangedFile(this)" placeholder="Файл" aria-label="G-code rs274">
+            <button class="btn btn-outline-secondary" asp-page-handler="Load" type="submit">Загрузить файл</button>
+            <div class="input-group-append">
+                <button class="btn btn-primary" id="draw_button" disabled onclick="SnowCanvas()" type="button">Отрисовать</button>
+            </div>
+        </div>
+
+
+   </form>
+
+   
+
+
+
+
+</div>
+
+
+<div class="row justify-content-center">
+
+    <div class="spinner-border" id="loading_spinner" hidden role="status">
+        <span class="sr-only"></span>
+        
+       
+    </div>
+    <div id="gui-container"></div>
+        <div id="canvas_patrial"></div>
+    
+   
+</div>
+
+
+
+<script>
+
+    function SnowCanvas(){
+
+       
+        
+
+        document.getElementById('loading_spinner').hidden = false;
+
+        $('#canvas_patrial').load('/Index?handler=Canvas_Partial&file=' + document.getElementById("filename").innerHTML)
+
+
+    }
+
+
+    function ChangedFile(hes) {
+
+        
+
+
+
+    }
+
+    $(document).ready(function () {
+        debugger;
+        if (document.getElementById('filename').innerHTML.length != 0) document.getElementById('draw_button').disabled = false; 
+    });
+
+
+</script>
